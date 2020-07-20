@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+/** Based on Team @teamest/models/raw */
+message Team {
+  string name = 1;
+  bool is_external = 2;
+}
+
+/** Based on EventType @teamest/models/raw */
+enum EventType {
+  OTHER = 0;
+  DUTY = 1;
+  MATCH = 2;
+}
+
+/** Based on Match @teamest/models/raw */
+message Match {
+  Team home = 1;
+  Team away = 2;
+  Team duty = 3;
+  string round = 4;
+}
+
+/** Based on Duty @teamest/models/raw */
+message Duty {
+  Team home = 1;
+  Team away = 2;
+  Team duty = 3;
+  string round = 4;
+}
+
+/** Based on SerialisedEvent @teamest/models/raw */
+message EventWrapper {
+  EventType type = 1;
+  oneof sub_event {
+    Match match = 2;
+    Duty duty = 3;
+  }
+}
+
+/** Based on SerialisedTeamSeason @teamest/models/processed */
+message TeamSeason {
+  string season_name = 1;
+  string team_name = 2;
+  repeated EventWrapper wrapped_events = 3;
+  string time_scraped = 4;
+  string timezone = 5;
+  int32 match_duration = 6;
+}
+
+message UpdateTeamSeasonResult {
+  string season_name = 1;
+  string team_name = 2;
+  int64 team_season_id = 3;
+  bool was_modified = 4;
+}
+
+service Season {
+  rpc UpdateTeamSeason (TeamSeason) returns (UpdateTeamSeasonResult);
+}

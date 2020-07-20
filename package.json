@@ -1,0 +1,25 @@
+{
+  "name": "@teamest/internal-season-api",
+  "version": "0.0.1",
+  "description": "Internal gRPC service responsible for management of season data",
+  "main": "index.js",
+  "scripts": {
+    "build": "bash ./build.sh",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/teamest-au/internal-season-api.git"
+  },
+  "author": "Daniel Emery <danielremery@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/teamest-au/internal-season-api/issues"
+  },
+  "homepage": "https://github.com/teamest-au/internal-season-api#readme",
+  "devDependencies": {
+    "grpc-tools": "^1.9.0",
+    "protoc-gen-grpc": "^1.4.0",
+    "ts-protoc-gen": "^0.12.0"
+  }
+}
