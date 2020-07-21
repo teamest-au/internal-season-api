@@ -113,3 +113,8 @@ server/season_grpc_pb.d.ts
 server/season_grpc_pb.js
 server/season_pb.d.ts
 server/season_pb.js
+
+common/grpc-types/season_grpc_pb.d.ts
+common/grpc-types/season_grpc_pb.js
+common/grpc-types/season_pb.d.ts
+common/grpc-types/season_pb.js
