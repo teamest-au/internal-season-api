@@ -4,8 +4,12 @@
   "description": "Internal gRPC service responsible for management of season data",
   "main": "index.js",
   "scripts": {
-    "build": "bash ./build.sh",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build-common": "cd common && npm ci && npm run build",
+    "test-common": "cd common && npm t",
+    "build-client": "cd client && npm ci && npm run build",
+    "test-client": "cd client && npm t",
+    "build-server": "cd server && npm ci && npm run build",
+    "test-server": "cd server && npm t"
   },
   "repository": {
     "type": "git",

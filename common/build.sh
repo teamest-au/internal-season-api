@@ -1,3 +1,5 @@
+set -eou pipefail
+
 rm -rf ./grpc-types
 mkdir ./grpc-types
 
