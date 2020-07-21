@@ -1,8 +1,8 @@
 {
-  "name": "@teamest/internal-season-service",
+  "name": "@teamest/internal-season-api",
   "version": "0.0.1",
-  "description": "gRPC node client to call internal season service",
-  "main": "index.js",
+  "description": "Internal gRPC service responsible for management of season data.",
+  "main": "dist/index.js",
   "scripts": {
     "build": "npx tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -17,14 +17,14 @@
     "url": "https://github.com/teamest-au/internal-season-api/issues"
   },
   "homepage": "https://github.com/teamest-au/internal-season-api#readme",
+  "dependencies": {
+    "@grpc/grpc-js": "^1.1.2",
+    "google-protobuf": "^4.0.0-rc.1",
+    "grpc-server-js": "^0.3.2"
+  },
   "devDependencies": {
     "@types/google-protobuf": "^3.7.2",
     "@types/node": "^14.0.24",
     "typescript": "^3.9.7"
-  },
-  "dependencies": {
-    "@grpc/grpc-js": "^1.1.2",
-    "@teamest/models": "^0.7.1",
-    "google-protobuf": "^4.0.0-rc.1"
   }
 }

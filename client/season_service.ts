@@ -1,8 +1,8 @@
-const grpc = require("@grpc/grpc-js");
+const grpc = require('@grpc/grpc-js');
 
-import { Event, Team } from "@teamest/models/raw";
-import { TeamSeason } from "@teamest/models/processed";
-import { ProcessedSerialisers, EventGuards } from "@teamest/models/helpers";
+import { Event, Team } from '@teamest/models/raw';
+import { TeamSeason } from '@teamest/models/processed';
+import { ProcessedSerialisers, EventGuards } from '@teamest/models/helpers';
 import {
   TeamSeason as GrpcTeamSeason,
   UpdateTeamSeasonResult as GrpcTeamSeasonResult,
@@ -10,9 +10,16 @@ import {
   Team as GrpcTeam,
   EventType as GrpcEventType,
   EventWrapper,
-} from "./season_pb";
-import { SeasonClient } from "./season_grpc_pb";
-import { EventType } from "@teamest/models/raw/event";
+} from './season_pb';
+import { SeasonClient } from './season_grpc_pb';
+import { EventType } from '@teamest/models/raw/event';
+
+interface UpdateTeamSeasonResult {
+  seasonName: string;
+  teamName: string;
+  teamSeasonId: string;
+  wasModified: boolean;
+}
 
 function packageTeam(team: Team): GrpcTeam {
   const result = new GrpcTeam();
@@ -23,11 +30,11 @@ function packageTeam(team: Team): GrpcTeam {
 
 function packageEventType(type: EventType) {
   switch (type) {
-    case "duty":
+    case 'duty':
       return GrpcEventType.DUTY;
-    case "match":
+    case 'match':
       return GrpcEventType.MATCH;
-    case "other":
+    case 'other':
     default:
       return GrpcEventType.OTHER;
   }
@@ -67,15 +74,15 @@ export default class SeasonService {
   constructor(service_uri: string) {
     this.client = new SeasonClient(
       service_uri,
-      grpc.credentials.createInsecure()
+      grpc.credentials.createInsecure(),
     );
   }
 
   async updateTeamSeason(
-    teamSeason: TeamSeason
-  ): Promise<GrpcTeamSeasonResult> {
+    teamSeason: TeamSeason,
+  ): Promise<UpdateTeamSeasonResult> {
     const serialisedTeamSeason = ProcessedSerialisers.serialiseTeamSeason(
-      teamSeason
+      teamSeason,
     );
     const grpcTeamSeason: GrpcTeamSeason = new GrpcTeamSeason();
     grpcTeamSeason.setMatchDuration(serialisedTeamSeason.matchDuration);
@@ -85,23 +92,35 @@ export default class SeasonService {
     grpcTeamSeason.setTimezone(serialisedTeamSeason.timezone);
     grpcTeamSeason.setWrappedEventsList(teamSeason.events.map(packageEvent));
     return new Promise((resolve, reject) => {
-      this.client.updateTeamSeason(grpcTeamSeason, (err, result) => {
-        if (err) reject(err);
-        resolve(result);
-      });
+      this.client.updateTeamSeason(
+        grpcTeamSeason,
+        (err, result: GrpcTeamSeasonResult | undefined) => {
+          if (err) reject(err);
+          if (!result) {
+            reject('No result');
+          } else {
+            resolve({
+              seasonName: result.getSeasonName(),
+              teamName: result.getTeamName(),
+              teamSeasonId: result.getTeamSeasonId(),
+              wasModified: result.getWasModified(),
+            });
+          }
+        },
+      );
     });
   }
 }
 
 async function test() {
-  const s = new SeasonService("localhost");
+  const s = new SeasonService('localhost:50051');
   const result = await s.updateTeamSeason({
-    seasonName: "Test Season",
-    teamName: "Dateko",
+    seasonName: 'Test Season',
+    teamName: 'Dateko',
     events: [],
     matchDuration: 60,
     timeScraped: new Date(),
-    timezone: "Australia/Adelaide",
+    timezone: 'Australia/Adelaide',
   });
   console.log(result);
 }
@@ -113,5 +132,5 @@ test().then(
   (err) => {
     console.error(err);
     process.exit(1);
-  }
+  },
 );

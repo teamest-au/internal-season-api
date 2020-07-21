@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/teamest-au/internal-season-api#readme",
   "devDependencies": {
+    "@danielemeryau/prettier-config": "0.0.6",
     "grpc-tools": "^1.9.0",
     "protoc-gen-grpc": "^1.4.0",
     "ts-protoc-gen": "^0.12.0"

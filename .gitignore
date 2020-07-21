@@ -108,3 +108,8 @@ client/season_grpc_pb.d.ts
 client/season_grpc_pb.js
 client/season_pb.d.ts
 client/season_pb.js
+
+server/season_grpc_pb.d.ts
+server/season_grpc_pb.js
+server/season_pb.d.ts
+server/season_pb.js
