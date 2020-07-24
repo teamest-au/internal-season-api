@@ -1,4 +1,5 @@
 syntax = "proto3";
+import "google/protobuf/wrappers.proto";
 
 /** Based on Team @teamest/models/raw */
 message Team {
@@ -18,7 +19,7 @@ message Match {
   Team home = 1;
   Team away = 2;
   Team duty = 3;
-  string round = 4;
+  google.protobuf.StringValue round = 4;
 }
 
 /** Based on Duty @teamest/models/raw */
@@ -26,15 +27,18 @@ message Duty {
   Team home = 1;
   Team away = 2;
   Team duty = 3;
-  string round = 4;
+  google.protobuf.StringValue round = 4;
 }
 
 /** Based on SerialisedEvent @teamest/models/raw */
 message EventWrapper {
   EventType type = 1;
+  string time = 2;
+  google.protobuf.StringValue court = 3;
+  google.protobuf.StringValue venue = 4;
   oneof sub_event {
-    Match match = 2;
-    Duty duty = 3;
+    Match match = 5;
+    Duty duty = 6;
   }
 }
 
