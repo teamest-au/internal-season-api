@@ -16,7 +16,10 @@ interface EventData {
   matchDuration: number;
 }
 
-function eventDataHasChanged(existing: EventData, current: EventData): boolean {
+export function eventDataHasChanged(
+  existing: EventData,
+  current: EventData,
+): boolean {
   return !deepEqual(existing, current);
 }
 
@@ -130,6 +133,7 @@ export default class InternalSeasonService {
           "Team season doesn't exist, inserting with latest events",
           { teamName: recievedTeamName, seasonName: receivedSeasonName },
         );
+
         const teamSeasonId = uuidv4();
         await trx('team_season').insert<DataTypes.TeamSeason>({
           team_season_id: teamSeasonId,
