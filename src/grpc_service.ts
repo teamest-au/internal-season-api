@@ -1,13 +1,9 @@
 import Knex from 'knex';
 import Logger from '@danielemeryau/logger';
 
-import { GrpcTypes } from '@teamest/internal-season-common';
+import { GrpcTypes, GrpcPackaging } from '@teamest/internal-season-common';
 
 import InternalSeasonService from './service';
-import {
-  unpackageTeamSeason,
-  packageUpdateTeamSeasonResult,
-} from '@teamest/internal-season-common/dist/src/grpc_packaging';
 
 export default class InternalSeasonGrpcService {
   service: InternalSeasonService;
@@ -17,14 +13,14 @@ export default class InternalSeasonGrpcService {
   }
 
   async updateTeamSeason(
-    teamSeason: GrpcTypes.TeamSeason,
+    request: GrpcTypes.UpdateTeamSeasonRequest,
     metadata: any,
-  ): Promise<GrpcTypes.UpdateTeamSeasonResult> {
-    const unpackaged = unpackageTeamSeason(teamSeason);
+  ): Promise<GrpcTypes.UpdateTeamSeasonResponse> {
+    const unpackaged = GrpcPackaging.unpackageUpdateTeamSeasonRequest(request);
 
     const result = await this.service.updateTeamSeason(unpackaged);
 
-    const packagedResult = packageUpdateTeamSeasonResult(result);
+    const packagedResult = GrpcPackaging.packageUpdateTeamSeasonResponse(result);
 
     return packagedResult;
   }

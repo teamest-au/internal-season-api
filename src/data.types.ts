@@ -3,18 +3,16 @@ import { SerialisedEvent } from "@teamest/models/raw";
 export interface TeamSeason {
   team_season_id: string;
   team_name: string;
+  competition_name: string;
   season_name: string;
   created_at: string;
   updated_at: string;
 }
 
-export interface TeamSeasonEvent {
-  team_season_event_id: string;
+export interface TeamSeasonVersion {
+  team_season_version_id: string;
   team_season_id: string;
-  timezone: string;
-  event_duration_minutes: number;
   events: SerialisedEvent[];
-  scraped_at: string;
-  created_at: string;
-  updated_at: string;
+  first_scraped: string;
+  last_scraped: string;
 }
