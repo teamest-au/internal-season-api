@@ -1,6 +1,6 @@
 {
   "name": "@teamest/internal-season-api",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Internal gRPC service responsible for management of season data.",
   "main": "dist/index.js",
   "scripts": {
