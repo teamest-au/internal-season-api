@@ -16,7 +16,7 @@ async function start() {
     password: process.env.MYSQL_PASS || 'internal_season',
     database: process.env.MYSQL_DATABASE || 'season_data',
   };
-  logger.info(`Connecting to MySql ${dbConnection.user}@${dbConnection.host}`)
+  logger.info(`Connecting to MySql ${dbConnection.user}@${dbConnection.host}`);
   const knex = Knex({
     client: 'mysql2',
     connection: dbConnection,
@@ -50,11 +50,24 @@ async function start() {
           callback(err);
         });
     },
+    getSeasonsForTeam: function (
+      { metadata, request }: any,
+      callback: Function,
+    ) {
+      service
+        .getSeasonsForTeam(request, metadata)
+        .then((result) => {
+          callback(null, result);
+        })
+        .catch((err) => {
+          callback(err);
+        });
+    },
   });
   const host = `0.0.0.0:${process.env.GRPC_PORT || 50051}`;
   await server.bind(host, grpc.ServerCredentials.createInsecure());
   server.start();
-  logger.info(`Grpc Server listening on ${host}`)
+  logger.info(`Grpc Server listening on ${host}`);
 }
 
 start()

@@ -8,6 +8,7 @@ import { RawJSONSerialisers } from '@teamest/models/helpers';
 import { ServiceTypes } from '@teamest/internal-season-common';
 
 import * as DataTypes from './data.types';
+import { SavedTeamSeason } from '@teamest/models/processed';
 
 export function eventDataHasChanged(
   existing: Event[],
@@ -76,7 +77,7 @@ export default class InternalSeasonService {
         console.log(latestVersionEvents);
 
         const deserialisedLatestEvents = latestVersionEvents.events.map(
-          event => RawJSONSerialisers.deserialiseEvent(JSON.stringify(event)),
+          (event) => RawJSONSerialisers.deserialiseEvent(JSON.stringify(event)),
         );
 
         this.logger.debug('Diffing existing events against recieved', {
@@ -167,6 +168,63 @@ export default class InternalSeasonService {
     }
 
     return result;
+  }
+
+  async getSeasonsForTeam(
+    request: ServiceTypes.GetSeasonsForTeamRequest,
+  ): Promise<ServiceTypes.GetSeasonsForTeamResponse> {
+    const { teamSpecifiers, updatedSince } = request;
+    const teamSeasonMatches = await this.knex('team_season')
+      .select<DataTypes.TeamSeason[]>(
+        'team_season_id',
+        'team_season.competition_name',
+        'team_season.season_name',
+        'team_season.team_name',
+      )
+      .whereIn(
+        ['competition_name', 'season_name', 'team_name'],
+        teamSpecifiers.map((ts) => [
+          ts.competitionName,
+          ts.seasonName,
+          ts.teamName,
+        ]),
+      );
+    console.log(`Team Season Match Count: ${teamSeasonMatches.length}`);
+    let matches: SavedTeamSeason[] = [];
+    for (const match of teamSeasonMatches) {
+      const latestVersion = await this.knex('team_season_version')
+        .where({
+          team_season_id: match.team_season_id,
+        })
+        .select<DataTypes.TeamSeasonVersion>(
+          'events',
+          'first_scraped',
+          'last_scraped',
+        )
+        .modify(function (qb) {
+          if (updatedSince) {
+            qb.where('team_season_version.first_scraped', '>', updatedSince);
+          }
+        })
+        .orderBy('last_scraped', 'desc')
+        .first();
+      if (latestVersion) {
+        const deserialisedEvents = latestVersion.events.map((event: any) =>
+          RawJSONSerialisers.deserialiseEvent(JSON.stringify(event)),
+        );
+        matches.push({
+          competitionName: match.competition_name,
+          seasonName: match.season_name,
+          teamName: match.team_name,
+          events: deserialisedEvents,
+          lastChanged: latestVersion.first_scraped,
+          lastScraped: latestVersion.last_scraped,
+        });
+      }
+    }
+    return {
+      matchingTeamSeasons: matches,
+    };
   }
 
   async destroy() {

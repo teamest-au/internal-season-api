@@ -20,7 +20,22 @@ export default class InternalSeasonGrpcService {
 
     const result = await this.service.updateTeamSeason(unpackaged);
 
-    const packagedResult = GrpcPackaging.packageUpdateTeamSeasonResponse(result);
+    const packagedResult = GrpcPackaging.packageUpdateTeamSeasonResponse(
+      result,
+    );
+
+    return packagedResult;
+  }
+
+  async getSeasonsForTeam(
+    request: GrpcTypes.GetSeasonsForTeamRequest,
+    metadata: any,
+  ): Promise<GrpcTypes.GetSeasonsForTeamResponse> {
+    const unpackaged = GrpcPackaging.unpackageGetSeasonsForTeamRequest(request);
+
+    const result = await this.service.getSeasonsForTeam(unpackaged);
+
+    const packagedResult = GrpcPackaging.packageGetSeasonsForTeamResponse(result);
 
     return packagedResult;
   }
