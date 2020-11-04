@@ -1,13 +1,12 @@
 import Knex from 'knex';
 import Logger from '@danielemeryau/logger';
-const grpc = require('@grpc/grpc-js');
-const { Server } = require('grpc-server-js');
 
-import { GrpcServices } from '@teamest/internal-season-common';
-import service from './src/grpc_service';
-import InternalSeasonGrpcService from './src/grpc_service';
+import { InternalSeasonServiceServer } from '@teamest/internal-season-server';
+
+import InternalSeasonService from './src/service';
 
 const logger = new Logger('internal-season-api');
+const PORT = (process.env.PORT && parseInt(process.env.PORT)) || 9010;
 
 async function start() {
   const dbConnection = {
@@ -33,41 +32,14 @@ async function start() {
     throw new Error('Error connecting to database');
   }
 
-  const service = new InternalSeasonGrpcService(knex, logger);
+  const service = new InternalSeasonService(knex, logger);
+  const server = new InternalSeasonServiceServer(
+    'internal-season-api/server',
+    PORT,
+    service,
+  );
 
-  const server = new Server();
-  server.addService(GrpcServices.SeasonService, {
-    updateTeamSeason: function (
-      { metadata, request }: any,
-      callback: Function,
-    ) {
-      service
-        .updateTeamSeason(request, metadata)
-        .then((result) => {
-          callback(null, result);
-        })
-        .catch((err) => {
-          callback(err);
-        });
-    },
-    getSeasonsForTeam: function (
-      { metadata, request }: any,
-      callback: Function,
-    ) {
-      service
-        .getSeasonsForTeam(request, metadata)
-        .then((result) => {
-          callback(null, result);
-        })
-        .catch((err) => {
-          callback(err);
-        });
-    },
-  });
-  const host = `0.0.0.0:${process.env.GRPC_PORT || 50051}`;
-  await server.bind(host, grpc.ServerCredentials.createInsecure());
-  server.start();
-  logger.info(`Grpc Server listening on ${host}`);
+  server.listen();
 }
 
 start()

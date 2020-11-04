@@ -1,10 +1,10 @@
 # Internal Season API
 
-Internal gRPC service responsible for management of season data.
+Internal http service responsible for management of season data.
 
 Server published to dockerhub: `teamest/internal-season-api`
 
-Client published to npm: `@teamest/internal-season-service`
+Client published to npm: `@teamest/internal-season-client`
 
 ## Available Services
 
@@ -21,7 +21,7 @@ Provide all configuration details via environment variables
 
 | Name                     | Default Value                         | Description                                |
 | ------------------------ | ------------------------------------- | ------------------------------------------ |
-| GRPC_PORT                | 50051                                 | Port to listen for GRPC requests           |
+| PORT                     | 9001                                  | Port to listen for internal http requests  |
 | MYSQL_HOST               | localhost                             | Hostname of the mysql instance             |
 | MYSQL_USER               | internal_season                       | Username to connect to mysql               |
 | MYSQL_PASS               | internal_season                       | Password to connect to mysql               |
@@ -32,7 +32,7 @@ Provide all configuration details via environment variables
 
 A manual run can be done with docker using the following command:
 
-`docker run --env-file=.env vcalendars/scraper-worker`
+`docker run --env-file=.env teamest/scraper-worker`
 
 ### Local Runs
 

@@ -4,11 +4,15 @@ import deepEqual from 'fast-deep-equal';
 import { v4 as uuidv4 } from 'uuid';
 
 import { Event } from '@teamest/models/raw';
-import { RawJSONSerialisers } from '@teamest/models/helpers';
-import { ServiceTypes } from '@teamest/internal-season-common';
 
 import * as DataTypes from './data.types';
 import { SavedTeamSeason } from '@teamest/models/processed';
+import {
+  IInternalSeasonService,
+  InternalSeasonServiceTypes,
+} from '@teamest/internal-season-server';
+
+import parseDates from './parseDates';
 
 export function eventDataHasChanged(
   existing: Event[],
@@ -17,19 +21,77 @@ export function eventDataHasChanged(
   return !deepEqual(existing, current);
 }
 
-export default class InternalSeasonService {
+export default class InternalSeasonService implements IInternalSeasonService {
   private knex: Knex;
   private logger: Logger;
 
   constructor(knex: Knex, logger: Logger) {
     this.knex = knex;
     this.logger = logger;
+
+    this.GetSeasonsForTeam = this.GetSeasonsForTeam.bind(this);
+    this.UpdateTeamSeason = this.UpdateTeamSeason.bind(this);
   }
 
-  async updateTeamSeason(
-    request: ServiceTypes.UpdateTeamSeasonRequest,
-  ): Promise<ServiceTypes.UpdateTeamSeasonResponse> {
-    let result: ServiceTypes.UpdateTeamSeasonResponse;
+  async GetSeasonsForTeam(
+    request: InternalSeasonServiceTypes.GetSeasonsForTeamRequest,
+  ): Promise<InternalSeasonServiceTypes.GetSeasonsForTeamResponse> {
+    const { teamSpecifiers, updatedSince } = request;
+    const teamSeasonMatches = await this.knex('team_season')
+      .select<DataTypes.TeamSeason[]>(
+        'team_season_id',
+        'team_season.competition_name',
+        'team_season.season_name',
+        'team_season.team_name',
+      )
+      .whereIn(
+        ['competition_name', 'season_name', 'team_name'],
+        teamSpecifiers.map((ts) => [
+          ts.competitionName,
+          ts.seasonName,
+          ts.teamName,
+        ]),
+      );
+    console.log(`Team Season Match Count: ${teamSeasonMatches.length}`);
+    let matches: SavedTeamSeason[] = [];
+    for (const match of teamSeasonMatches) {
+      const latestVersion = await this.knex('team_season_version')
+        .where({
+          team_season_id: match.team_season_id,
+        })
+        .select<DataTypes.TeamSeasonVersion>(
+          'events',
+          'first_scraped',
+          'last_scraped',
+        )
+        .modify(function (qb) {
+          if (updatedSince) {
+            qb.where('team_season_version.first_scraped', '>', updatedSince);
+          }
+        })
+        .orderBy('last_scraped', 'desc')
+        .first();
+      if (latestVersion) {
+        const deserialisedEvents = parseDates(latestVersion.events);
+        matches.push({
+          competitionName: match.competition_name,
+          seasonName: match.season_name,
+          teamName: match.team_name,
+          events: deserialisedEvents,
+          lastChanged: latestVersion.first_scraped,
+          lastScraped: latestVersion.last_scraped,
+        });
+      }
+    }
+    return {
+      matchingTeamSeasons: matches,
+    };
+  }
+
+  async UpdateTeamSeason(
+    request: InternalSeasonServiceTypes.UpdateTeamSeasonRequest,
+  ): Promise<InternalSeasonServiceTypes.UpdateTeamSeasonResponse> {
+    let result: InternalSeasonServiceTypes.UpdateTeamSeasonResponse;
     const { teamSeason } = request;
     const {
       competitionName: receivedCompetitionName,
@@ -76,9 +138,7 @@ export default class InternalSeasonService {
 
         console.log(latestVersionEvents);
 
-        const deserialisedLatestEvents = latestVersionEvents.events.map(
-          (event) => RawJSONSerialisers.deserialiseEvent(JSON.stringify(event)),
-        );
+        const deserialisedLatestEvents = parseDates(latestVersionEvents.events);
 
         this.logger.debug('Diffing existing events against recieved', {
           deserialisedLatestEvents,
@@ -93,9 +153,7 @@ export default class InternalSeasonService {
           await trx('team_season_version').insert<DataTypes.TeamSeasonVersion>({
             team_season_version_id: uuidv4(),
             team_season_id: existing.team_season_id,
-            events: `[${receivedEvents
-              .map(RawJSONSerialisers.serialiseEvent)
-              .join(',')}]`,
+            events: JSON.stringify(receivedEvents),
             first_scraped: receivedLastScraped,
             last_scraped: receivedLastScraped,
           });
@@ -168,63 +226,6 @@ export default class InternalSeasonService {
     }
 
     return result;
-  }
-
-  async getSeasonsForTeam(
-    request: ServiceTypes.GetSeasonsForTeamRequest,
-  ): Promise<ServiceTypes.GetSeasonsForTeamResponse> {
-    const { teamSpecifiers, updatedSince } = request;
-    const teamSeasonMatches = await this.knex('team_season')
-      .select<DataTypes.TeamSeason[]>(
-        'team_season_id',
-        'team_season.competition_name',
-        'team_season.season_name',
-        'team_season.team_name',
-      )
-      .whereIn(
-        ['competition_name', 'season_name', 'team_name'],
-        teamSpecifiers.map((ts) => [
-          ts.competitionName,
-          ts.seasonName,
-          ts.teamName,
-        ]),
-      );
-    console.log(`Team Season Match Count: ${teamSeasonMatches.length}`);
-    let matches: SavedTeamSeason[] = [];
-    for (const match of teamSeasonMatches) {
-      const latestVersion = await this.knex('team_season_version')
-        .where({
-          team_season_id: match.team_season_id,
-        })
-        .select<DataTypes.TeamSeasonVersion>(
-          'events',
-          'first_scraped',
-          'last_scraped',
-        )
-        .modify(function (qb) {
-          if (updatedSince) {
-            qb.where('team_season_version.first_scraped', '>', updatedSince);
-          }
-        })
-        .orderBy('last_scraped', 'desc')
-        .first();
-      if (latestVersion) {
-        const deserialisedEvents = latestVersion.events.map((event: any) =>
-          RawJSONSerialisers.deserialiseEvent(JSON.stringify(event)),
-        );
-        matches.push({
-          competitionName: match.competition_name,
-          seasonName: match.season_name,
-          teamName: match.team_name,
-          events: deserialisedEvents,
-          lastChanged: latestVersion.first_scraped,
-          lastScraped: latestVersion.last_scraped,
-        });
-      }
-    }
-    return {
-      matchingTeamSeasons: matches,
-    };
   }
 
   async destroy() {
