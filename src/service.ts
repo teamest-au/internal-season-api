@@ -52,7 +52,6 @@ export default class InternalSeasonService implements IInternalSeasonService {
           ts.teamName,
         ]),
       );
-    console.log(`Team Season Match Count: ${teamSeasonMatches.length}`);
     let matches: SavedTeamSeason[] = [];
     for (const match of teamSeasonMatches) {
       const latestVersion = await this.knex('team_season_version')
@@ -135,8 +134,6 @@ export default class InternalSeasonService implements IInternalSeasonService {
             'team_season exists without any team_season_version entries!',
           );
         }
-
-        console.log(latestVersionEvents);
 
         const deserialisedLatestEvents = parseDates(latestVersionEvents.events);
 
