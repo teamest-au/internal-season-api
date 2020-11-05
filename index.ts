@@ -1,50 +1,35 @@
 import Knex from 'knex';
 import Logger from '@danielemeryau/logger';
 
+import { ProcessManager } from '@teamest/process-manager';
 import { InternalSeasonServiceServer } from '@teamest/internal-season-server';
 
-import InternalSeasonService from './src/service';
+import InternalSeasonProcess from './src/InternalSeasonServer';
+import InternalSeasonService from './src/InternalSeasonService';
+import KnexService from './src/KnexService';
 
 const logger = new Logger('internal-season-api');
 const PORT = (process.env.PORT && parseInt(process.env.PORT)) || 9010;
+const HEALTH_PORT =
+  (process.env.HEALTH_PORT && parseInt(process.env.HEALTH_PORT)) || 9011;
 
-async function start() {
-  const dbConnection = {
-    host: process.env.MYSQL_HOST || 'localhost',
-    user: process.env.MYSQL_USER || 'internal_season',
-    password: process.env.MYSQL_PASS || 'internal_season',
-    database: process.env.MYSQL_DATABASE || 'season_data',
-  };
-  logger.info(`Connecting to MySql ${dbConnection.user}@${dbConnection.host}`);
-  const knex = Knex({
-    client: 'mysql2',
-    connection: dbConnection,
-    migrations: {
-      tableName: 'migrations',
-    },
-  });
+const processManager = new ProcessManager(logger, {
+  healthResponseTimeMs: 2000,
+  healthPort: HEALTH_PORT,
+});
+const knexService = new KnexService(logger, {
+  host: process.env.MYSQL_HOST || 'localhost',
+  user: process.env.MYSQL_USER || 'internal_season',
+  password: process.env.MYSQL_PASS || 'internal_season',
+  database: process.env.MYSQL_DATABASE || 'season_data',
+});
+const internalSeasonProcess = new InternalSeasonProcess(
+  knexService,
+  logger,
+  PORT,
+);
 
-  try {
-    await knex.raw('select 1+1 as result');
-    logger.info('Connected to database successfully');
-  } catch (err) {
-    logger.error('Error connecting to database', err);
-    throw new Error('Error connecting to database');
-  }
+processManager.registerService(knexService);
+processManager.registerService(internalSeasonProcess);
 
-  const service = new InternalSeasonService(knex, logger);
-  const server = new InternalSeasonServiceServer(
-    'internal-season-api/server',
-    PORT,
-    service,
-  );
-
-  server.listen();
-}
-
-start()
-  .then(() => {})
-  .catch((error) => {
-    console.error(error);
-    process.exit(1);
-  });
+processManager.start();
