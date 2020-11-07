@@ -17,6 +17,6 @@ COPY --from=build /usr/build/dist ./dist
 COPY --from=build /usr/build/node_modules ./node_modules
 
 HEALTHCHECK --interval=10s --timeout=5s \
-  CMD curl -f http://localhost:$PORT/healthz || exit 1
+  CMD curl -f http://localhost:${HEALTH_PORT:-4000}/healthz || exit 1
 
 CMD ["sh", "-c", "node dist/index.js"]
