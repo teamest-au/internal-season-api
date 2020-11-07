@@ -1,6 +1,6 @@
 {
   "name": "@teamest/internal-season-api",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Internal http service responsible for management of season data.",
   "main": "dist/index.js",
   "scripts": {
