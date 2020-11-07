@@ -1,12 +1,9 @@
-import Knex from 'knex';
 import Logger from '@danielemeryau/logger';
 
 import { ProcessManager } from '@teamest/process-manager';
-import { InternalSeasonServiceServer } from '@teamest/internal-season-server';
+import { KnexService } from '@teamest/knex-service';
 
 import InternalSeasonProcess from './src/InternalSeasonServer';
-import InternalSeasonService from './src/InternalSeasonService';
-import KnexService from './src/KnexService';
 
 const logger = new Logger('internal-season-api');
 const PORT = (process.env.PORT && parseInt(process.env.PORT)) || 9010;

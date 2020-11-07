@@ -1,57 +1,86 @@
+import axios from 'axios';
+import { Server } from 'http';
+
 import Logger from '@danielemeryau/logger';
+import { KnexService } from '@teamest/knex-service';
+import { InternalSeasonServiceServer } from '@teamest/internal-season-server';
+
+import { version } from '../package.json';
 
 import {
   IProcessManagerService,
-  IProcessHealth,
   IServiceHealth,
+  IServiceStatus,
+  waitUntilReady,
 } from '@teamest/process-manager';
-import KnexService from './KnexService';
 import InternalSeasonService from './InternalSeasonService';
-import { InternalSeasonServiceServer } from '@teamest/internal-season-server';
-
-async function sleep(ms: number) {
-  return new Promise((res) => setTimeout(res, ms));
-}
 
 export default class InternalSeasonServer implements IProcessManagerService {
   private knexService: KnexService;
   logger: Logger;
   port: number;
+  runState: 'stopped' | 'starting' | 'running' | 'stopping';
+  statusMessage?: string;
+  server?: Server;
 
   constructor(knexService: KnexService, logger: Logger, port: number) {
     this.knexService = knexService;
     this.logger = logger;
     this.port = port;
+    this.runState = 'stopped';
   }
 
   getName(): string {
     return 'http-rpc-server';
   }
-  async getHealth(): Promise<IServiceHealth> {
+
+  getStatus(): IServiceStatus {
     return {
-      healthy: false,
+      state: this.runState,
+      ...(this.statusMessage && { message: this.statusMessage }),
     };
   }
-  async start(): Promise<void> {
-    // Wait for knex
-    let ready;
-    do {
-      ready = (await this.knexService.getHealth()).healthy;
-      await sleep(2000);
-    } while (!ready);
 
-    const knex = this.knexService.getKnex();
-
-    const service = new InternalSeasonService(knex, this.logger);
-    const server = new InternalSeasonServiceServer(
-      'internal-season-api/server',
-      this.port,
-      service,
-    );
-
-    server.listen();
+  async getHealth(): Promise<IServiceHealth> {
+    try {
+      await axios.get(`http://localhost:${this.port}/version`);
+      return {
+        healthy: 'healthy',
+      };
+    } catch (err) {
+      this.logger.error(err);
+      return {
+        healthy: 'unhealthy',
+      };
+    }
   }
+
+  async start(): Promise<void> {
+    this.runState = 'starting';
+    this.statusMessage = 'waiting for mysql';
+    // Wait for knex
+    waitUntilReady([this.knexService], 5000, 'healthy').then(() => {
+      // Knex ready, start server
+      const knex = this.knexService.getInstance();
+
+      const service = new InternalSeasonService(knex, this.logger);
+      const server = new InternalSeasonServiceServer(
+        service,
+        'internal-season-api/server',
+        this.port,
+        {
+          api: `v${version}`,
+        },
+      );
+
+      server.listen();
+      this.statusMessage = undefined;
+      this.runState = 'running';
+    });
+  }
+
   stop(): Promise<void> {
-    throw new Error('Method not implemented.');
+    this.runState = 'stopped';
+    return Promise.resolve();
   }
 }
